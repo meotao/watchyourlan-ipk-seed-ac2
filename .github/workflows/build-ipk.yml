@@ -132,7 +132,7 @@ jobs:
           for IPK in "$WATCH_IPK" "$LUCI_IPK" "$ARP_IPK" "$PCAP_IPK"; do
             PART_DIR="$BUNDLE_DIR/$(basename "$IPK" .ipk)"
             mkdir -p "$PART_DIR"
-            (cd "$PART_DIR" && ar x "$IPK")
+            (cd "$PART_DIR" && ar x "$OLDPWD/$IPK")
             DATA_ARCHIVE="$(find "$PART_DIR" -maxdepth 1 -name 'data.tar.*' -print -quit)"
             test -n "$DATA_ARCHIVE"
             tar -xf "$DATA_ARCHIVE" -C "$BUNDLE_DIR/root"
