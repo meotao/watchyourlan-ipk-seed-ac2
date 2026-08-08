@@ -1,186 +1,88 @@
-name: Build WatchYourLAN IPK for SEED AC2
+name: Build WatchYourLAN ipk
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: write
-
-env:
-  # This is the release SDK for the same ImmortalWrt 24.10.1 filogic ABI.
-  # It includes the aarch64_cortex-a53 cross-toolchain, so GCC is not rebuilt.
-  SDK_URL: https://downloads.immortalwrt.org/releases/24.10.1/targets/mediatek/filogic/immortalwrt-sdk-24.10.1-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-  SDK_SHA256: 4611cc516893df944b9a89ac99346362d7902a776744d763e8a41aace3181db9
-  SDK_DIR: /workdir/immortalwrt-sdk-24.10.1-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64
-
-  # Go 1.26.5 feed; it builds WatchYourLAN 2.1.3 (requires Go 1.24.5).
-  GOLANG_REPO: https://github.com/sbwml/packages_lang_golang
-  GOLANG_COMMIT: 3757065cca28b7fbe0e1667040412990770ca2f4
-
-  WORKDIR: /workdir
-  TZ: Asia/Shanghai
+    inputs:
+      wyl_tag:
+        description: 'WatchYourLAN release tag (留空 = latest)'
+        required: false
+        default: ''
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 360
-
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: Checkout package repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
+      - name: Resolve WatchYourLAN version
+        id: resolve
         run: |
-          sudo apt-get -qq update
-          sudo apt-get -qq install -y \
-            ack antlr3 asciidoc autoconf automake autopoint binutils bison \
-            build-essential bzip2 ccache clang cmake cpio curl \
-            device-tree-compiler fastjar flex gawk gettext gcc-multilib \
-            g++-multilib git gperf help2man intltool lib32gcc-s1 \
-            libc6-dev-i386 libelf-dev libgmp3-dev libltdl-dev libmpc-dev \
-            libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev \
-            libreadline-dev libssl-dev libtool lld llvm mkisofs ninja-build \
-            p7zip-full patch pkgconf python3 python3-distutils python3-ply \
-            python3-docutils python3-pyelftools python3-setuptools qemu-utils \
-            re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs \
-            unzip wget xxd zlib1g-dev zstd
-          sudo mkdir -p "$WORKDIR"
-          sudo chown "$USER:$USER" "$WORKDIR"
+          set -e
+          TAG="${{ github.event.inputs.wyl_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG=$(curl -s https://api.github.com/repos/aceberg/WatchYourLAN/releases/latest | jq -r .tag_name)
+          fi
+          VER="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+          echo "Resolved WatchYourLAN ${TAG} (version ${VER})"
 
-      - name: Download matching ImmortalWrt SDK
-        working-directory: ${{ env.WORKDIR }}
+      - name: Download & extract arm64 binary
         run: |
-          curl --fail --location --retry 5 --retry-all-errors \
-            --output sdk.tar.zst "$SDK_URL"
-          echo "$SDK_SHA256  sdk.tar.zst" | sha256sum --check --strict
-          tar --use-compress-program=unzstd -xf sdk.tar.zst
-          test -d "$SDK_DIR"
+          set -e
+          TAG="${{ steps.resolve.outputs.tag }}"
+          ASSET_URL=$(curl -s "https://api.github.com/repos/aceberg/WatchYourLAN/releases/tags/${TAG}" \
+            | jq -r '.assets[] | select(.name | test("linux_arm64.*\\.tar\\.gz$")) | .browser_download_url')
+          if [ -z "$ASSET_URL" ]; then
+            echo "::error::找不到 linux_arm64 的 .tar.gz 资产，去 release 页面确认真实文件名后手动调整这里的正则"
+            exit 1
+          fi
+          echo "downloading: $ASSET_URL"
+          curl -fL "$ASSET_URL" -o wyl.tar.gz
 
-      # SDK archives contain the build system and cross-toolchain, but feeds
-      # are not installed. arp-scan comes from the packages feed.
-      - name: Update and install SDK feeds
-        working-directory: ${{ env.SDK_DIR }}
-        run: |
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          mkdir -p pkg/watchyourlan/data/usr/bin
+          tar -xzf wyl.tar.gz -C pkg/watchyourlan/data/usr/bin
 
-      - name: Install pinned Go feed
-        working-directory: ${{ env.SDK_DIR }}
-        run: |
-          rm -rf feeds/packages/lang/golang
-          git clone "$GOLANG_REPO" feeds/packages/lang/golang
-          git -C feeds/packages/lang/golang checkout "$GOLANG_COMMIT"
+          echo "----- extracted files -----"
+          find pkg/watchyourlan/data/usr/bin -type f -print
 
-      - name: Add local packages
-        working-directory: ${{ env.SDK_DIR }}
-        run: |
-          cp -a "$GITHUB_WORKSPACE/package/watchyourlan" package/
-          cp -a "$GITHUB_WORKSPACE/package/luci-app-watchyourlan" package/
+          cd pkg/watchyourlan/data/usr/bin
+          # 上游 tar.gz 解压后会套一层 watchyourlan_<ver>_linux_arm64/ 目录，
+          # 二进制在里面，同目录还有 install.sh / watchyourlan.service / LICENSE，
+          # 所以按精确文件名递归找，而不是只看当前层。
+          if [ ! -f ./watchyourlan ]; then
+            BIN=$(find . -type f -name "watchyourlan" | head -n1)
+            if [ -z "$BIN" ]; then
+              echo "::error::没找到名为 watchyourlan 的可执行文件，检查下面的 extracted files 列表"
+              exit 1
+            fi
+            echo "found: $BIN"
+            mv "$BIN" /tmp/watchyourlan-bin
+            find . -mindepth 1 -delete
+            mv /tmp/watchyourlan-bin ./watchyourlan
+          fi
+          chmod +x watchyourlan
+          echo "----- final usr/bin content -----"
+          ls -la .
 
-      - name: Enable packages in SDK configuration
-        working-directory: ${{ env.SDK_DIR }}
-        run: |
-          cat >> .config <<'EOF'
-          CONFIG_PACKAGE_watchyourlan=m
-          CONFIG_PACKAGE_luci-app-watchyourlan=m
-          CONFIG_PACKAGE_arp-scan=m
-          EOF
-          make defconfig
+      - name: Build watchyourlan.ipk
+        run: bash scripts/build_ipk.sh watchyourlan "${{ steps.resolve.outputs.ver }}" aarch64_cortex-a53
 
-      - name: Download WatchYourLAN source
-        working-directory: ${{ env.SDK_DIR }}
-        run: |
-          make package/watchyourlan/download V=s
-          find dl -size -1024c -delete
+      - name: Build luci-app-watchyourlan.ipk
+        run: bash scripts/build_ipk.sh luci-app-watchyourlan "1.0" all
 
-      - name: Compile IPKs only
-        working-directory: ${{ env.SDK_DIR }}
-        run: |
-          make package/feeds/packages/arp-scan/compile -j"$(nproc)" V=s
-          make package/watchyourlan/compile -j"$(nproc)" V=s
-          make package/luci-app-watchyourlan/compile -j"$(nproc)" V=s
-
-      # opkg normally tracks arp-scan, libpcap, the LuCI entry, and the app as
-      # separate packages. Merge their data archives for a single offline IPK.
-      - name: Create all-in-one IPK
-        working-directory: ${{ env.SDK_DIR }}
-        run: |
-          WATCH_IPK="$(find bin/packages -type f -name 'watchyourlan_*.ipk' -print -quit)"
-          LUCI_IPK="$(find bin/packages -type f -name 'luci-app-watchyourlan_*.ipk' -print -quit)"
-          ARP_IPK="$(find bin/packages -type f -name 'arp-scan_*.ipk' -print -quit)"
-          PCAP_IPK="$(find bin/packages -type f -name 'libpcap1_*.ipk' -print -quit)"
-
-          test -n "$WATCH_IPK" && test -n "$LUCI_IPK"
-          test -n "$ARP_IPK" && test -n "$PCAP_IPK"
-
-          BUNDLE_DIR="$(mktemp -d)"
-          mkdir -p "$BUNDLE_DIR/root" "$BUNDLE_DIR/control" "$GITHUB_WORKSPACE/output"
-
-          for IPK in "$WATCH_IPK" "$LUCI_IPK" "$ARP_IPK" "$PCAP_IPK"; do
-            PART_DIR="$BUNDLE_DIR/$(basename "$IPK" .ipk)"
-            mkdir -p "$PART_DIR"
-            (cd "$PART_DIR" && ar x "$IPK")
-            DATA_ARCHIVE="$(find "$PART_DIR" -maxdepth 1 -name 'data.tar.*' -print -quit)"
-            test -n "$DATA_ARCHIVE"
-            tar -xf "$DATA_ARCHIVE" -C "$BUNDLE_DIR/root"
-          done
-
-          WATCH_PART="$BUNDLE_DIR/$(basename "$WATCH_IPK" .ipk)"
-          CONTROL_ARCHIVE="$(find "$WATCH_PART" -maxdepth 1 -name 'control.tar.*' -print -quit)"
-          test -n "$CONTROL_ARCHIVE"
-          tar -xf "$CONTROL_ARCHIVE" -C "$BUNDLE_DIR/control"
-
-          # arp-scan and libpcap are now files in this package, not opkg deps.
-          sed -i -E 's/, ?arp-scan//g; s/arp-scan, ?//g' "$BUNDLE_DIR/control/control"
-
-          VERSION="$(sed -n 's/^Version: //p' "$BUNDLE_DIR/control/control")"
-          ARCH="$(sed -n 's/^Architecture: //p' "$BUNDLE_DIR/control/control")"
-          BUNDLE_NAME="watchyourlan-all-in-one_${VERSION}_${ARCH}.ipk"
-
-          printf '2.0\n' > "$BUNDLE_DIR/debian-binary"
-          tar --numeric-owner --owner=0 --group=0 -C "$BUNDLE_DIR/control" -czf "$BUNDLE_DIR/control.tar.gz" .
-          tar --numeric-owner --owner=0 --group=0 -C "$BUNDLE_DIR/root" -czf "$BUNDLE_DIR/data.tar.gz" .
-          ar r "$GITHUB_WORKSPACE/output/$BUNDLE_NAME" \
-            "$BUNDLE_DIR/debian-binary" "$BUNDLE_DIR/control.tar.gz" "$BUNDLE_DIR/data.tar.gz"
-          ls -lh "$GITHUB_WORKSPACE/output/$BUNDLE_NAME"
-
-      - name: Collect IPKs
-        working-directory: ${{ env.SDK_DIR }}
-        run: |
-          find "$GITHUB_WORKSPACE/output" -maxdepth 1 -type f \
-            -name 'watchyourlan-all-in-one_*.ipk' -print
-          ls -lh "$GITHUB_WORKSPACE/output"
-
-      - name: Upload IPK artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: WatchYourLAN-SEED-AC2-IPK-${{ github.run_number }}
-          path: output/
-          if-no-files-found: error
-          retention-days: 30
+          name: watchyourlan-ipk-${{ steps.resolve.outputs.ver }}
+          path: out/*.ipk
 
-      - name: Publish IPKs to GitHub Release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: watchyourlan-v2.1.3-r${{ github.run_number }}
-          name: WatchYourLAN 2.1.3 for SEED AC2 (build ${{ github.run_number }})
-          body: |
-            Standalone WatchYourLAN IPKs for BeeconMini SEED AC2.
-
-            Build SDK: ImmortalWrt 24.10.1 mediatek/filogic (GCC 13.3.0, musl)
-            One all-in-one IPK containing WatchYourLAN, LuCI menu entry, arp-scan, and libpcap.
-          files: output/*.ipk
-          fail_on_unmatched_files: true
+          tag_name: wyl-${{ steps.resolve.outputs.ver }}-${{ github.run_number }}
+          name: WatchYourLAN ${{ steps.resolve.outputs.ver }} (aarch64_cortex-a53)
+          files: out/*.ipk
