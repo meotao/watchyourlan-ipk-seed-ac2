@@ -69,6 +69,14 @@ jobs:
           tar --use-compress-program=unzstd -xf sdk.tar.zst
           test -d "$SDK_DIR"
 
+      # SDK archives contain the build system and cross-toolchain, but feeds
+      # are not installed. arp-scan comes from the packages feed.
+      - name: Update and install SDK feeds
+        working-directory: ${{ env.SDK_DIR }}
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
       - name: Install pinned Go feed
         working-directory: ${{ env.SDK_DIR }}
         run: |
