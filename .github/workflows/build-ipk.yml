@@ -113,16 +113,55 @@ jobs:
           make package/watchyourlan/compile -j"$(nproc)" V=s
           make package/luci-app-watchyourlan/compile -j"$(nproc)" V=s
 
+      # opkg normally tracks arp-scan, libpcap, the LuCI entry, and the app as
+      # separate packages. Merge their data archives for a single offline IPK.
+      - name: Create all-in-one IPK
+        working-directory: ${{ env.SDK_DIR }}
+        run: |
+          WATCH_IPK="$(find bin/packages -type f -name 'watchyourlan_*.ipk' -print -quit)"
+          LUCI_IPK="$(find bin/packages -type f -name 'luci-app-watchyourlan_*.ipk' -print -quit)"
+          ARP_IPK="$(find bin/packages -type f -name 'arp-scan_*.ipk' -print -quit)"
+          PCAP_IPK="$(find bin/packages -type f -name 'libpcap1_*.ipk' -print -quit)"
+
+          test -n "$WATCH_IPK" && test -n "$LUCI_IPK"
+          test -n "$ARP_IPK" && test -n "$PCAP_IPK"
+
+          BUNDLE_DIR="$(mktemp -d)"
+          mkdir -p "$BUNDLE_DIR/root" "$BUNDLE_DIR/control" "$GITHUB_WORKSPACE/output"
+
+          for IPK in "$WATCH_IPK" "$LUCI_IPK" "$ARP_IPK" "$PCAP_IPK"; do
+            PART_DIR="$BUNDLE_DIR/$(basename "$IPK" .ipk)"
+            mkdir -p "$PART_DIR"
+            (cd "$PART_DIR" && ar x "$IPK")
+            DATA_ARCHIVE="$(find "$PART_DIR" -maxdepth 1 -name 'data.tar.*' -print -quit)"
+            test -n "$DATA_ARCHIVE"
+            tar -xf "$DATA_ARCHIVE" -C "$BUNDLE_DIR/root"
+          done
+
+          WATCH_PART="$BUNDLE_DIR/$(basename "$WATCH_IPK" .ipk)"
+          CONTROL_ARCHIVE="$(find "$WATCH_PART" -maxdepth 1 -name 'control.tar.*' -print -quit)"
+          test -n "$CONTROL_ARCHIVE"
+          tar -xf "$CONTROL_ARCHIVE" -C "$BUNDLE_DIR/control"
+
+          # arp-scan and libpcap are now files in this package, not opkg deps.
+          sed -i -E 's/, ?arp-scan//g; s/arp-scan, ?//g' "$BUNDLE_DIR/control/control"
+
+          VERSION="$(sed -n 's/^Version: //p' "$BUNDLE_DIR/control/control")"
+          ARCH="$(sed -n 's/^Architecture: //p' "$BUNDLE_DIR/control/control")"
+          BUNDLE_NAME="watchyourlan-all-in-one_${VERSION}_${ARCH}.ipk"
+
+          printf '2.0\n' > "$BUNDLE_DIR/debian-binary"
+          tar --numeric-owner --owner=0 --group=0 -C "$BUNDLE_DIR/control" -czf "$BUNDLE_DIR/control.tar.gz" .
+          tar --numeric-owner --owner=0 --group=0 -C "$BUNDLE_DIR/root" -czf "$BUNDLE_DIR/data.tar.gz" .
+          ar r "$GITHUB_WORKSPACE/output/$BUNDLE_NAME" \
+            "$BUNDLE_DIR/debian-binary" "$BUNDLE_DIR/control.tar.gz" "$BUNDLE_DIR/data.tar.gz"
+          ls -lh "$GITHUB_WORKSPACE/output/$BUNDLE_NAME"
+
       - name: Collect IPKs
         working-directory: ${{ env.SDK_DIR }}
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/output"
-          find bin/packages -type f \
-            \( -name 'watchyourlan_*.ipk' \
-            -o -name 'luci-app-watchyourlan_*.ipk' \
-            -o -name 'arp-scan_*.ipk' \
-            -o -name 'libpcap*.ipk' \) \
-            -exec cp -f {} "$GITHUB_WORKSPACE/output/" \;
+          find "$GITHUB_WORKSPACE/output" -maxdepth 1 -type f \
+            -name 'watchyourlan-all-in-one_*.ipk' -print
           ls -lh "$GITHUB_WORKSPACE/output"
 
       - name: Upload IPK artifact
@@ -142,6 +181,6 @@ jobs:
             Standalone WatchYourLAN IPKs for BeeconMini SEED AC2.
 
             Build SDK: ImmortalWrt 24.10.1 mediatek/filogic (GCC 13.3.0, musl)
-            Included packages: WatchYourLAN, LuCI menu entry, and any generated arp-scan/libpcap dependency IPKs.
+            One all-in-one IPK containing WatchYourLAN, LuCI menu entry, arp-scan, and libpcap.
           files: output/*.ipk
           fail_on_unmatched_files: true
