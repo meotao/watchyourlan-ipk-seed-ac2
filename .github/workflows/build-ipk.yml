@@ -1,0 +1,95 @@
+name: Build WatchYourLAN IPK for SEED AC2
+
+on:
+  workflow_dispatch:
+
+env:
+  # Keep this aligned with meotao/Beeconmini-seed-ac2.
+  OPENWRT_REPO: https://github.com/BeeconMini/immortalwrt
+  OPENWRT_COMMIT: 9d076a1
+
+  # Go 1.26.5 feed; it builds WatchYourLAN 2.1.3 (requires Go 1.24.5).
+  GOLANG_REPO: https://github.com/sbwml/packages_lang_golang
+  GOLANG_COMMIT: 3757065cca28b7fbe0e1667040412990770ca2f4
+
+  WORKDIR: /workdir
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Checkout package repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y \
+            ack antlr3 asciidoc autoconf automake autopoint binutils bison \
+            build-essential bzip2 ccache clang cmake cpio curl \
+            device-tree-compiler fastjar flex gawk gettext gcc-multilib \
+            g++-multilib git gperf help2man intltool lib32gcc-s1 \
+            libc6-dev-i386 libelf-dev libgmp3-dev libltdl-dev libmpc-dev \
+            libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev \
+            libreadline-dev libssl-dev libtool lld llvm mkisofs ninja-build \
+            p7zip-full patch pkgconf python3 python3-distutils python3-ply \
+            python3-docutils python3-pyelftools python3-setuptools qemu-utils \
+            re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs \
+            unzip wget xxd zlib1g-dev zstd
+          sudo mkdir -p "$WORKDIR"
+          sudo chown "$USER:$USER" "$WORKDIR"
+
+      - name: Clone matching BeeconMini source
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          git clone "$OPENWRT_REPO" openwrt
+          cd openwrt
+          git checkout "$OPENWRT_COMMIT"
+
+      - name: Update OpenWrt feeds
+        working-directory: ${{ env.WORKDIR }}/openwrt
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Install pinned Go feed
+        working-directory: ${{ env.WORKDIR }}/openwrt
+        run: |
+          rm -rf feeds/packages/lang/golang
+          git clone "$GOLANG_REPO" feeds/packages/lang/golang
+          git -C feeds/packages/lang/golang checkout "$GOLANG_COMMIT"
+
+      - name: Add local packages
+        working-directory: ${{ env.WORKDIR }}/openwrt
+        run: |
+          cp -a "$GITHUB_WORKSPACE/package/watchyourlan" package/
+          cp -a "$GITHUB_WORKSPACE/package/luci-app-watchyourlan" package/
+
+      - name: Configure SEED AC2 package architecture
+        working-directory: ${{ env.WORKDIR }}/openwrt
+        run: |
+          cat > .config <<'EOF'
+          CONFIG_TARGET_mediatek=y
+          CONFIG_TARGET_mediatek_filogic=y
+          CONFIG_TARGET_mediatek_filogic_DEVICE_beeconmini_seed-ac2=y
+          CONFIG_PACKAGE_watchyourlan=m
+          CONFIG_PACKAGE_luci-app-watchyourlan=m
+          CONFIG_PACKAGE_arp-scan=m
+          EOF
+          make defconfig
