@@ -97,6 +97,15 @@ jobs:
           EOF
           make defconfig
 
+      # A package-only build still needs the target C library and cross compiler
+      # installed in staging_dir. Without this, package/libs/toolchain cannot
+      # find ld-musl-*.so while packaging the first dependency.
+      - name: Build host tools and target toolchain
+        working-directory: ${{ env.WORKDIR }}/openwrt
+        run: |
+          make tools/install -j"$(nproc)" V=s
+          make toolchain/install -j"$(nproc)" V=s
+
       - name: Download WatchYourLAN source
         working-directory: ${{ env.WORKDIR }}/openwrt
         run: |
