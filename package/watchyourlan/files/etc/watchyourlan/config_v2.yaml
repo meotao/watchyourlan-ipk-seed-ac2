@@ -1,0 +1,13 @@
+host: "0.0.0.0"
+port: "8840"
+ifaces: "br-lan"
+timeout: 120
+arp_args: ""
+
+theme: "sand"
+color: "dark"
+log_level: "info"
+trim_hist: 48
+
+use_db: "sqlite"
+prometheus_enable: false

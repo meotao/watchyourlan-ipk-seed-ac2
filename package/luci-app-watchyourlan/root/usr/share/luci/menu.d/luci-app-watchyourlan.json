@@ -1,0 +1,10 @@
+{
+  "admin/services/watchyourlan": {
+    "title": "WatchYourLAN",
+    "order": 70,
+    "action": {
+      "type": "view",
+      "path": "watchyourlan/status"
+    }
+  }
+}
