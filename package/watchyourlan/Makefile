@@ -43,7 +43,7 @@ endef
 
 define Package/watchyourlan/install
 	$(call GoPackage/Package/Install/Bin,$(1))
-	$(MV) $(1)/usr/bin/WatchYourLAN $(1)/usr/bin/watchyourlan
+	mv $(1)/usr/bin/WatchYourLAN $(1)/usr/bin/watchyourlan
 
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/etc/init.d/watchyourlan \
