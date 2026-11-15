@@ -73,17 +73,16 @@ payload:
   - DOMAIN,admobile.top
   - DOMAIN,adreq.vivo.com.cn
   - DOMAIN,ads-api-o.api.leiniao.com
-  - DOMAIN,ads-api.tiktok.com
   - DOMAIN,ads-api.twitter.com
   - DOMAIN,ads-img-al.xhscdn.com
+  - DOMAIN,ads-img-bak.xhscdn.com
   - DOMAIN,ads-img-qc.xhscdn.com
-  - DOMAIN,ads-jp.tiktok.com
   - DOMAIN,ads-marketing-vivofs.vivo.com.cn
   - DOMAIN,ads-sdk-api.ranfenghd.com
-  - DOMAIN,ads-sg.tiktok.com
   - DOMAIN,ads-shopping.shouqianba.com
   - DOMAIN,ads-video-al.xhscdn.com
   - DOMAIN,ads-video-qc.xhscdn.com
+  - DOMAIN,ads-vp5.xhscdn.com
   - DOMAIN,ads.95516.com
   - DOMAIN,ads.adfunlink.com
   - DOMAIN,ads.auctions.yahoo.com
@@ -101,7 +100,6 @@ payload:
   - DOMAIN,ads.raidrive.com
   - DOMAIN,ads.servebom.com
   - DOMAIN,ads.service.kugou.com
-  - DOMAIN,ads.tiktok.com
   - DOMAIN,ads.v3mh.com
   - DOMAIN,ads.youtube.com
   - DOMAIN,ads.zhinengxiyifang.cn
@@ -138,7 +136,6 @@ payload:
   - DOMAIN,adsmind.ugdtimg.com
   - DOMAIN,adsmoloco.com
   - DOMAIN,adsp.xunlei.com
-  - DOMAIN,adspecs.yahoo.com
   - DOMAIN,adstat.izuiyou.com
   - DOMAIN,adstats.tencentmusic.com
   - DOMAIN,adstextview.qq.com
@@ -146,9 +143,7 @@ payload:
   - DOMAIN,adstore-index-1252524079.file.myqcloud.com
   - DOMAIN,adstrategy.biz.weibo.com
   - DOMAIN,adstudio-assets.scdn.co
-  - DOMAIN,adstudio.spotify.com
   - DOMAIN,adtago.s3.amazonaws.com
-  - DOMAIN,adtech.yahooinc.com
   - DOMAIN,adtrack.quark.cn
   - DOMAIN,adtracker.adfunlink.com
   - DOMAIN,adtracker.medproad.com
@@ -156,12 +151,6 @@ payload:
   - DOMAIN,adv-api.shenshiads.com
   - DOMAIN,adv.sec.intl.miui.com
   - DOMAIN,adv.sec.miui.com
-  - DOMAIN,advertising-api-eu.amazon.com
-  - DOMAIN,advertising-api-fe.amazon.com
-  - DOMAIN,advertising-api.amazon.com
-  - DOMAIN,advertising.apple.com
-  - DOMAIN,advertising.yahoo.com
-  - DOMAIN,advertising.yandex.ru
   - DOMAIN,advice-ads.s3.amazonaws.com
   - DOMAIN,adview.cn
   - DOMAIN,adx-ad.smart-tv.cn
@@ -241,7 +230,6 @@ payload:
   - DOMAIN,beizi.biz
   - DOMAIN,bgg.baidu.com
   - DOMAIN,bianxian.com
-  - DOMAIN,bingads.microsoft.com
   - DOMAIN,biz.weibo.com
   - DOMAIN,bj-td-menta-01-callback.advlion.com
   - DOMAIN,bj.ad.track.66mobi.com
@@ -283,7 +271,6 @@ payload:
   - DOMAIN,config.unityads.unity3d.com
   - DOMAIN,cpc-service-square.aiclk.com
   - DOMAIN,cpro.baidustatic.com
-  - DOMAIN,csjplatform.com
   - DOMAIN,d.applovin.com
   - DOMAIN,d.applvn.com
   - DOMAIN,da.anythinktech.com
@@ -380,6 +367,7 @@ payload:
   - DOMAIN,l6.fancyapi.com
   - DOMAIN,launcher.smart-tv.cn
   - DOMAIN,launcherimg.smart-tv.cn
+  - DOMAIN,lf-event-manager.oceanengine.com
   - DOMAIN,lf3-ad-union-sdk.pglstatp-toutiao.com
   - DOMAIN,lf6-ad-union-sdk.pglstatp-toutiao.com
   - DOMAIN,lftxali.fancyapi.com
@@ -587,8 +575,6 @@ payload:
   - DOMAIN,tx-ad.a.yximgs.com
   - DOMAIN,tytx.m.cn.miaozhen.com
   - DOMAIN,uapi.ads.heytapmobi.com
-  - DOMAIN,union.baidu.cn
-  - DOMAIN,union.baidu.com
   - DOMAIN,unityads.unity3d.com
   - DOMAIN,update0.aiclk.com
   - DOMAIN,us.l.qq.com
@@ -9544,7 +9530,6 @@ payload:
   - DOMAIN-SUFFIX,dasperdolus.com
   - DOMAIN-SUFFIX,data-data-vac.com
   - DOMAIN-SUFFIX,data-px.services
-  - DOMAIN-SUFFIX,data.hicloud.com
   - DOMAIN-SUFFIX,data159.click
   - DOMAIN-SUFFIX,data284.click
   - DOMAIN-SUFFIX,data369.click
@@ -41538,6 +41523,15 @@ payload:
   - DOMAIN-SUFFIX,zzyxhvqjjtgxj.online
   - DOMAIN-SUFFIX,zzzjhkyprpsvl.store
   - DOMAIN-SUFFIX,zzzmjfixezere.site
+  - IP-CIDR,111.20.26.186/32,no-resolve
+  - IP-CIDR,112.84.130.73/32,no-resolve
+  - IP-CIDR,116.142.251.100/32,no-resolve
+  - IP-CIDR,116.177.251.215/32,no-resolve
+  - IP-CIDR,120.77.173.114/32,no-resolve
+  - IP-CIDR,123.56.23.22/32,no-resolve
+  - IP-CIDR,14.29.101.160/32,no-resolve
+  - IP-CIDR,14.29.101.168/32,no-resolve
+  - IP-CIDR,14.29.101.169/32,no-resolve
   - IP-CIDR,141.98.82.232/32,no-resolve
   - IP-CIDR,157.90.183.248/32,no-resolve
   - IP-CIDR,162.252.214.4/32,no-resolve
@@ -41559,6 +41553,7 @@ payload:
   - IP-CIDR,172.255.6.252/32,no-resolve
   - IP-CIDR,172.255.6.254/32,no-resolve
   - IP-CIDR,172.255.6.59/32,no-resolve
+  - IP-CIDR,182.254.116.116/32,no-resolve
   - IP-CIDR,185.149.120.173/32,no-resolve
   - IP-CIDR,188.42.84.110/32,no-resolve
   - IP-CIDR,188.42.84.137/32,no-resolve
@@ -41592,7 +41587,9 @@ payload:
   - IP-CIDR,203.195.121.72/32,no-resolve
   - IP-CIDR,203.195.121.73/32,no-resolve
   - IP-CIDR,203.195.121.74/32,no-resolve
+  - IP-CIDR,203.205.137.89/32,no-resolve
   - IP-CIDR,212.117.186.252/32,no-resolve
+  - IP-CIDR,218.77.192.51/32,no-resolve
   - IP-CIDR,23.109.121.125/32,no-resolve
   - IP-CIDR,23.109.121.254/32,no-resolve
   - IP-CIDR,23.109.150.208/32,no-resolve
@@ -41624,6 +41621,7 @@ payload:
   - IP-CIDR,35.232.188.118/32,no-resolve
   - IP-CIDR,37.1.209.213/32,no-resolve
   - IP-CIDR,37.1.213.100/32,no-resolve
+  - IP-CIDR,38.190.225.166/32,no-resolve
   - IP-CIDR,5.61.55.143/32,no-resolve
   - IP-CIDR,51.77.227.100/32,no-resolve
   - IP-CIDR,51.77.227.101/32,no-resolve
