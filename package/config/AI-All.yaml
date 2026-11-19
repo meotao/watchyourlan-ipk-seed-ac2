@@ -8,10 +8,12 @@ payload:
   - DOMAIN,bard.google.com
   - DOMAIN,console.groq.com
   - DOMAIN,copilot-proxy.githubusercontent.com
+  - DOMAIN,fcmtoken.googleapis.com
   - DOMAIN,gemini.google.com
   - DOMAIN,generativelanguage.googleapis.com
   - DOMAIN,notebooklm.google.com
   - DOMAIN,sydney.bing.com
+  - DOMAIN,us5.datadoghq.com
   - DOMAIN-KEYWORD,anthropic
   - DOMAIN-KEYWORD,claude
   - DOMAIN-KEYWORD,openai
@@ -21,6 +23,7 @@ payload:
   - DOMAIN-SUFFIX,bard.google.com
   - DOMAIN-SUFFIX,challenges.cloudflare.com
   - DOMAIN-SUFFIX,chatgpt.com
+  - DOMAIN-SUFFIX,clau.de
   - DOMAIN-SUFFIX,claude.ai
   - DOMAIN-SUFFIX,claude.com
   - DOMAIN-SUFFIX,claudeusercontent.com
@@ -49,6 +52,8 @@ payload:
   - DOMAIN-SUFFIX,openaiapi-site.azureedge.net
   - DOMAIN-SUFFIX,perplexity.ai
   - DOMAIN-SUFFIX,sentry.io
+  - DOMAIN-SUFFIX,siftscience.com
   - DOMAIN-SUFFIX,sora.com
   - DOMAIN-SUFFIX,stripe.com
   - DOMAIN-SUFFIX,x.ai
+  - IP-CIDR,34.8.0.0/16,no-resolve
